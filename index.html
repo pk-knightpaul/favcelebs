@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0d1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FavCeleb – Who's Your Fav?</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --bg:#0d0d1a; --card:#16182a; --card2:#1e2138; --border:#2e3158;
+  --accent:#ff6b6b; --accent2:#ffd93d; --accent3:#6bcb77;
+  --blue:#4d96ff; --purple:#c77dff; --text:#f0f0ff; --muted:#7b7fa8;
+  --sb:env(safe-area-inset-bottom,0px); --st:env(safe-area-inset-top,0px);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  height:100%; background:var(--bg); color:var(--text);
+  font-family:'Nunito',sans-serif; overflow-x:hidden;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(77,150,255,.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 85% 90%, rgba(199,125,255,.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(255,107,107,.05) 0%, transparent 60%);
+}
+
+/* ─── LAYOUT ─── */
+.wrap {
+  position:relative; z-index:1; max-width:480px; width:100%; margin:0 auto;
+  padding:0 14px calc(28px + var(--sb)); padding-top:calc(8px + var(--st));
+}
+
+/* ─── TOPBAR ─── */
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:12px; position:sticky; top:0; z-index:50;
+  background:linear-gradient(to bottom, var(--bg) 78%, transparent);
+  padding-top:calc(6px + var(--st));
+}
+.logo { display:flex; align-items:center; gap:8px; }
+.logo-box {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  background:linear-gradient(135deg,#ff6b6b,#ffd93d);
+  display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+  box-shadow:0 3px 14px rgba(255,107,107,.45);
+}
+.logo-nm {
+  font-family:'Righteous',sans-serif; font-size:1.35rem;
+  background:linear-gradient(135deg,#ff6b6b,#ffd93d);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.score-pill {
+  display:flex; align-items:center; gap:5px; background:var(--card);
+  border:1px solid var(--border); border-radius:50px; padding:4px 11px 4px 7px;
+  font-size:.75rem; font-weight:800;
+}
+.score-pill .fl { font-size:.95rem; }
+.score-pill .pv { color:var(--accent2); font-size:.9rem; font-weight:900; }
+.sx-b {
+  background:linear-gradient(135deg,#ff6b6b,#c77dff);
+  border-radius:50px; padding:1px 6px; font-size:.58rem; font-weight:900; color:#fff;
+}
+
+/* ─── SCREENS ─── */
+.screen { display:none; }
+.screen.active { display:block; animation:su .35s cubic-bezier(.4,0,.2,1); }
+
+@keyframes su    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes spin  { to{transform:rotate(360deg)} }
+@keyframes glow  { 0%,100%{box-shadow:0 0 20px rgba(255,107,107,.35)} 50%{box-shadow:0 0 48px rgba(255,107,107,.65),0 0 80px rgba(255,107,107,.18)} }
+@keyframes floatUp { 0%{opacity:0;transform:translate(-50%,-50%) scale(.5)} 30%{opacity:1;transform:translate(-50%,-68%) scale(1.1)} 70%{opacity:1;transform:translate(-50%,-82%)} 100%{opacity:0;transform:translate(-50%,-115%)} }
+@keyframes wpop  { 0%{transform:scale(1)} 45%{transform:scale(1.06);box-shadow:0 0 0 6px rgba(255,217,61,.2)} 100%{transform:translateY(-4px)} }
+@keyframes slIn  { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+@keyframes cfall { to{transform:translateY(110vh) rotate(720deg);opacity:0} }
+@keyframes bob   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes pulseBorder { 0%,100%{border-color:var(--accent2)} 50%{border-color:#ff8e53} }
+
+/* ─── LOADING ─── */
+#loadScreen { text-align:center; padding:5rem 1rem; }
+.spinner { width:50px; height:50px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 1.2rem; }
+.load-h { font-family:'Righteous',sans-serif; font-size:1.8rem; color:var(--accent); }
+.load-p { color:var(--muted); font-size:.8rem; margin-top:.3rem; }
+.load-bar { width:210px; height:5px; background:var(--border); border-radius:3px; margin:1.1rem auto 0; overflow:hidden; }
+.load-fill { height:100%; background:linear-gradient(90deg,#ff6b6b,#ffd93d); border-radius:3px; width:0%; transition:width .25s ease; }
+.load-cl { margin-top:.55rem; font-size:.65rem; color:var(--muted); min-height:.9em; }
+
+/* ─── LOBBY ─── */
+.hero {
+  background:linear-gradient(135deg,#1e1530,#1a2040);
+  border:1px solid var(--border); border-radius:20px;
+  padding:1.6rem 1.2rem; text-align:center; margin-bottom:1rem;
+  position:relative; overflow:hidden;
+}
+.hero::before { content:''; position:absolute; top:-25px; right:-25px; width:140px; height:140px; background:radial-gradient(circle,rgba(255,107,107,.13),transparent 70%); border-radius:50%; }
+.hero::after  { content:''; position:absolute; bottom:-25px; left:-25px; width:130px; height:130px; background:radial-gradient(circle,rgba(77,150,255,.1),transparent 70%); border-radius:50%; }
+.hero-em { font-size:2.6rem; animation:bob 2.2s ease infinite; display:block; }
+.hero-h  { font-family:'Righteous',sans-serif; font-size:1.65rem; margin:.5rem 0 .3rem; }
+.hero-h span { color:var(--accent); }
+.hero-p  { color:var(--muted); font-size:.78rem; line-height:1.6; max-width:280px; margin:0 auto; }
+
+.how-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:.9rem 0; }
+.how-c { background:var(--card); border:1px solid var(--border); border-radius:13px; padding:.75rem .5rem; text-align:center; }
+.how-c .ic { font-size:1.25rem; margin-bottom:.2rem; }
+.how-c .ht { font-size:.7rem; font-weight:800; margin-bottom:.1rem; }
+.how-c .hd { font-size:.59rem; color:var(--muted); line-height:1.4; }
+
+.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:.9rem; }
+.ftag {
+  padding:5px 13px; border:1.5px solid var(--border); border-radius:50px;
+  background:transparent; color:var(--muted); font-family:'Nunito',sans-serif;
+  font-weight:700; font-size:.72rem; cursor:pointer; transition:all .18s; touch-action:manipulation;
+}
+.ftag:hover,.ftag:active { border-color:var(--accent); color:var(--accent); }
+.ftag.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.celeb-row { display:flex; gap:7px; overflow-x:auto; padding-bottom:5px; scrollbar-width:none; margin-bottom:1rem; -webkit-overflow-scrolling:touch; }
+.celeb-row::-webkit-scrollbar { display:none; }
+.chip { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:4px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:8px 10px 7px; width:66px; transition:border-color .18s; }
+.chip:hover { border-color:var(--accent); }
+.chip img { width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--border); background:var(--card2); }
+.chip-nm { font-size:.57rem; font-weight:700; color:var(--text); line-height:1.2; text-align:center; }
+
+.big-btn {
+  width:100%; padding:.9rem; background:linear-gradient(135deg,#ff6b6b,#ff8e53);
+  border:none; border-radius:14px; font-family:'Righteous',sans-serif;
+  font-size:1.1rem; letter-spacing:.05em; color:#fff; cursor:pointer;
+  transition:all .18s; box-shadow:0 7px 26px rgba(255,107,107,.42);
+  animation:glow 2.5s ease infinite; touch-action:manipulation;
+}
+.big-btn:active { transform:scale(.97); }
+.big-btn:hover  { transform:translateY(-2px); box-shadow:0 11px 34px rgba(255,107,107,.55); }
+.lobby-note { text-align:center; margin-top:.55rem; font-size:.63rem; color:var(--muted); }
+
+/* ─── BATTLE ─── */
+.battle-toprow {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; margin-bottom:.75rem;
+}
+.round-tag {
+  background:var(--card); border:1px solid var(--border); border-radius:50px;
+  padding:3px 10px; font-size:.63rem; font-weight:800; color:var(--accent);
+  white-space:nowrap; letter-spacing:.05em; flex-shrink:0;
+}
+.prog-wrap { flex:1; display:flex; flex-direction:column; gap:3px; }
+.prog-track { height:7px; background:var(--border); border-radius:4px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77); transition:width .5s cubic-bezier(.4,0,.2,1); }
+.left-tag { font-size:.62rem; color:var(--muted); font-weight:700; text-align:right; }
+
+/* EXIT BUTTON — always visible during battle */
+.exit-btn {
+  display:flex; align-items:center; gap:4px;
+  background:rgba(255,107,107,.12); border:1.5px solid rgba(255,107,107,.35);
+  border-radius:50px; padding:4px 11px;
+  font-family:'Nunito',sans-serif; font-weight:800; font-size:.65rem;
+  color:var(--accent); cursor:pointer; transition:all .18s; touch-action:manipulation;
+  white-space:nowrap; flex-shrink:0;
+}
+.exit-btn:hover,.exit-btn:active { background:rgba(255,107,107,.25); border-color:var(--accent); }
+
+.livebar {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  background:var(--card); border:1px solid var(--border); border-radius:13px;
+  overflow:hidden; margin-bottom:.8rem;
+}
+.lv { text-align:center; padding:.52rem .25rem; border-right:1px solid var(--border); }
+.lv:last-child { border-right:none; }
+.lv-val { font-family:'Righteous',sans-serif; font-size:1.15rem; line-height:1; }
+.lv-val.cp  { color:var(--accent2); }
+.lv-val.cs  { color:var(--accent); }
+.lv-val.csp { color:var(--accent3); }
+.lv-lbl { font-size:.52rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.07em; margin-top:2px; }
+
+/* CARDS */
+.arena { display:grid; grid-template-columns:1fr 40px 1fr; gap:.5rem; align-items:center; margin-bottom:.6rem; }
+
+.dp-card {
+  background:var(--card); border:2px solid var(--border); border-radius:17px;
+  padding:1rem .6rem .75rem; text-align:center; cursor:pointer;
+  transition:all .2s cubic-bezier(.4,0,.2,1);
+  position:relative; overflow:hidden;
+  touch-action:manipulation; user-select:none;
+}
+.dp-card:active { transform:scale(.95) !important; }
+.dp-card:hover  { border-color:var(--accent); transform:translateY(-4px); box-shadow:0 10px 28px rgba(255,107,107,.22); }
+.dp-card.winner { border-color:#ffd93d; animation:wpop .42s ease; }
+.dp-card.loser  { opacity:.25; transform:scale(.93) !important; pointer-events:none; }
+
+.ig-wrap { display:inline-flex; padding:3px; border-radius:50%; background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); margin-bottom:.6rem; }
+.ig-in { background:var(--card); border-radius:50%; padding:2px; }
+
+/* Images use object-fit and fixed dimensions — no broken box */
+.dp-img {
+  width:clamp(74px,17vw,105px);
+  height:clamp(74px,17vw,105px);
+  border-radius:50%; object-fit:cover; display:block; background:var(--card2);
+}
+
+.dp-nm  { font-weight:900; font-size:.8rem; line-height:1.2; margin-bottom:2px; }
+.dp-hd  { font-size:.58rem; color:var(--muted); margin-bottom:5px; }
+.dp-elo { display:inline-block; background:var(--bg); border:1px solid var(--border); border-radius:50px; padding:1px 7px; font-size:.56rem; font-weight:700; color:var(--muted); }
+
+.pick-over {
+  position:absolute; bottom:0; left:0; right:0;
+  background:linear-gradient(135deg,#ff6b6b,#ff8e53);
+  color:#fff; font-size:.63rem; font-weight:900;
+  padding:6px; letter-spacing:.07em; text-transform:uppercase;
+  opacity:0; transform:translateY(4px); transition:all .18s;
+}
+.dp-card:hover .pick-over { opacity:1; transform:translateY(0); }
+
+.vs-mid { font-family:'Righteous',sans-serif; font-size:1.2rem; color:var(--muted); text-align:center; }
+.tap-hint { text-align:center; font-size:.6rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-bottom:.5rem; }
+
+/* SHARE DURING GAME */
+.battle-share-row {
+  display:flex; gap:8px; margin-top:.6rem;
+}
+.battle-share-btn {
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  background:linear-gradient(135deg,rgba(77,150,255,.15),rgba(199,125,255,.15));
+  border:1.5px solid rgba(77,150,255,.3); border-radius:12px;
+  padding:.6rem; font-family:'Nunito',sans-serif; font-weight:800;
+  font-size:.72rem; color:var(--blue); cursor:pointer;
+  transition:all .18s; touch-action:manipulation;
+}
+.battle-share-btn:hover,.battle-share-btn:active { background:linear-gradient(135deg,rgba(77,150,255,.25),rgba(199,125,255,.25)); border-color:var(--blue); }
+
+/* Points popup */
+.pts-pop {
+  position:fixed; top:50%; left:50%;
+  font-family:'Righteous',sans-serif; font-size:2rem; color:var(--accent2);
+  pointer-events:none; z-index:999;
+  text-shadow:0 0 18px rgba(255,217,61,.85);
+  animation:floatUp .85s ease forwards;
+}
+
+/* ─── END SELECTION ─── */
+#endSelectScreen { text-align:center; }
+.es-h   { font-family:'Righteous',sans-serif; font-size:1.5rem; margin-bottom:.3rem; }
+.es-sub { color:var(--muted); font-size:.76rem; margin-bottom:1rem; line-height:1.5; }
+
+.es-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr));
+  gap:8px; margin-bottom:1.1rem;
+  max-height:50vh; overflow-y:auto; padding:3px;
+  scrollbar-width:thin; scrollbar-color:var(--border) transparent;
+}
+.es-grid::-webkit-scrollbar { width:3px; }
+.es-grid::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+.es-card {
+  background:var(--card); border:2px solid var(--border); border-radius:14px;
+  padding:.7rem .45rem; text-align:center; cursor:pointer;
+  transition:all .18s; touch-action:manipulation; position:relative;
+}
+.es-card:hover,.es-card:active { border-color:var(--accent); transform:scale(1.03); }
+.es-card.chosen {
+  border-color:var(--accent2);
+  background:linear-gradient(135deg,rgba(255,217,61,.1),rgba(255,107,107,.09));
+  animation:pulseBorder 1.5s ease infinite;
+}
+.es-card.chosen::after {
+  content:'✓'; position:absolute; top:-6px; right:-6px;
+  width:20px; height:20px; background:var(--accent2); border-radius:50%;
+  font-size:.65rem; font-weight:900; color:#111;
+  display:grid; place-items:center; box-shadow:0 2px 8px rgba(255,217,61,.4);
+}
+.es-card img { width:48px; height:48px; border-radius:50%; object-fit:cover; margin-bottom:5px; border:2px solid var(--border); background:var(--card2); display:block; margin-left:auto; margin-right:auto; }
+.es-nm  { font-size:.63rem; font-weight:800; line-height:1.2; }
+.es-elo { font-size:.54rem; color:var(--muted); margin-top:2px; }
+
+.es-confirm {
+  width:100%; padding:.85rem; border:none; border-radius:13px;
+  background:linear-gradient(135deg,#ffd93d,#ff8e53);
+  font-family:'Righteous',sans-serif; font-size:1rem; letter-spacing:.04em;
+  color:#111; cursor:pointer; transition:all .18s; touch-action:manipulation;
+  box-shadow:0 6px 22px rgba(255,217,61,.4);
+}
+.es-confirm:disabled { opacity:.35; cursor:not-allowed; }
+.es-confirm:not(:disabled):hover  { transform:translateY(-2px); box-shadow:0 10px 28px rgba(255,217,61,.5); }
+.es-confirm:not(:disabled):active { transform:scale(.97); }
+
+/* ─── GAME OVER ─── */
+#gameOverScreen { text-align:center; }
+.go-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,#ff6b6b,#c77dff);
+  border-radius:50px; padding:5px 15px;
+  font-size:.63rem; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:#fff;
+  margin-bottom:.85rem;
+}
+.go-h {
+  font-family:'Righteous',sans-serif; font-size:clamp(1.9rem,8vw,3.2rem);
+  line-height:.88; margin-bottom:.85rem;
+  background:linear-gradient(135deg,#ffd93d,#ff6b6b);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+
+/* Chosen celeb hero */
+.chosen-hero {
+  background:linear-gradient(135deg,#1e1a35,#1a2040);
+  border:2px solid var(--accent2); border-radius:17px;
+  padding:1.1rem .9rem; margin-bottom:.85rem;
+  display:flex; align-items:center; gap:.8rem; text-align:left;
+  position:relative; overflow:hidden;
+}
+.chosen-hero::before { content:''; position:absolute; top:-25px; right:-25px; width:120px; height:120px; background:radial-gradient(circle,rgba(255,217,61,.14),transparent 70%); border-radius:50%; }
+.ch-crown { font-size:1.5rem; flex-shrink:0; align-self:flex-start; margin-top:2px; }
+.ch-img   { width:62px; height:62px; border-radius:50%; object-fit:cover; flex-shrink:0; border:3px solid var(--accent2); background:var(--card2); }
+.ch-lbl   { font-size:.56rem; color:var(--accent2); font-weight:800; letter-spacing:.1em; text-transform:uppercase; margin-bottom:2px; }
+.ch-name  { font-family:'Righteous',sans-serif; font-size:1.2rem; line-height:1.1; margin-bottom:1px; }
+.ch-hd    { font-size:.62rem; color:var(--muted); }
+.ch-elo   { display:inline-block; margin-top:4px; background:rgba(255,217,61,.1); border:1px solid rgba(255,217,61,.24); border-radius:50px; padding:1px 8px; font-size:.6rem; font-weight:800; color:var(--accent2); }
+
+/* Score box */
+.score-box {
+  background:linear-gradient(135deg,#1a1535,#1e2040);
+  border:1px solid var(--purple); border-radius:17px;
+  padding:1.1rem .9rem; margin-bottom:.85rem;
+  position:relative; overflow:hidden;
+}
+.score-box::before { content:''; position:absolute; top:-40px; left:50%; transform:translateX(-50%); width:160px; height:160px; background:radial-gradient(circle,rgba(199,125,255,.12),transparent 70%); border-radius:50%; }
+.pts-lbl { font-size:.6rem; color:var(--muted); font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.15rem; }
+.big-pts { font-family:'Righteous',sans-serif; font-size:3rem; color:var(--accent2); text-shadow:0 0 22px rgba(255,217,61,.45); line-height:1; }
+.rank-badge { display:inline-block; padding:3px 14px; border-radius:50px; font-size:.7rem; font-weight:900; letter-spacing:.06em; margin-top:.3rem; }
+.rS { background:linear-gradient(135deg,#ffd93d,#ff8e53); color:#1a0000; }
+.rA { background:linear-gradient(135deg,#6bcb77,#4d96ff); color:#001a00; }
+.rB { background:linear-gradient(135deg,#4d96ff,#c77dff); color:#fff; }
+.rC { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+
+.stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border-radius:10px; overflow:hidden; margin-top:.85rem; }
+.sg   { background:var(--card); padding:.65rem .3rem; text-align:center; }
+.sg-v { font-family:'Righteous',sans-serif; font-size:1.3rem; }
+.sg-l { font-size:.52rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+
+/* ─── PROMINENT SHARE SECTION ─── */
+.share-section {
+  background:linear-gradient(135deg,rgba(77,150,255,.08),rgba(199,125,255,.08));
+  border:1.5px solid rgba(77,150,255,.25);
+  border-radius:17px; padding:1rem; margin-bottom:.85rem;
+}
+.share-section-title {
+  font-family:'Righteous',sans-serif; font-size:1rem;
+  margin-bottom:.7rem; color:var(--blue);
+}
+.share-big-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-bottom:.7rem; }
+.s-btn {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:var(--card2); border:1px solid var(--border); border-radius:12px;
+  padding:.7rem .3rem; cursor:pointer; transition:all .18s; touch-action:manipulation;
+  color:var(--text); font-family:'Nunito',sans-serif; border:none;
+}
+.s-btn:active { transform:scale(.93); }
+.s-btn:hover  { background:var(--card); }
+.s-btn .si { font-size:1.55rem; }
+.s-btn .sl { font-size:.57rem; font-weight:700; color:var(--muted); }
+
+.share-challenge-btn {
+  width:100%; padding:.8rem; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#ff6b6b,#ff8e53);
+  font-family:'Righteous',sans-serif; font-size:.95rem; letter-spacing:.04em;
+  color:#fff; cursor:pointer; transition:all .18s; touch-action:manipulation;
+  box-shadow:0 5px 18px rgba(255,107,107,.35);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.share-challenge-btn:hover  { transform:translateY(-2px); box-shadow:0 8px 24px rgba(255,107,107,.5); }
+.share-challenge-btn:active { transform:scale(.97); }
+
+/* Leaderboard */
+.lb-h    { font-family:'Righteous',sans-serif; font-size:1.05rem; text-align:left; margin-bottom:.5rem; color:var(--accent2); }
+.lb-list { display:flex; flex-direction:column; gap:6px; margin-bottom:.85rem; }
+.lb-row {
+  display:grid; grid-template-columns:28px 36px 1fr auto;
+  align-items:center; gap:.55rem;
+  background:var(--card); border:1px solid var(--border); border-radius:11px;
+  padding:.55rem .8rem; animation:slIn .35s ease both; text-align:left;
+}
+.lb-row:nth-child(1) { border-color:#ffd700; }
+.lb-row:nth-child(2) { border-color:#b0b0b0; }
+.lb-row:nth-child(3) { border-color:#cd7f32; }
+.lb-pos { font-family:'Righteous',sans-serif; font-size:1.1rem; color:var(--muted); text-align:center; }
+.lb-row:nth-child(1) .lb-pos { color:#ffd700; }
+.lb-row:nth-child(2) .lb-pos { color:#aaa; }
+.lb-row:nth-child(3) .lb-pos { color:#cd7f32; }
+.lb-img { width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid var(--border); background:var(--card2); }
+.lb-nm  { font-weight:800; font-size:.74rem; }
+.lb-cat { font-size:.56rem; color:var(--muted); }
+.lb-elo { font-family:'Righteous',sans-serif; font-size:.95rem; color:var(--accent); }
+.lb-wl  { font-size:.54rem; color:var(--muted); }
+
+/* Action row */
+.act-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:.65rem; }
+.act-btn { display:flex; align-items:center; justify-content:center; gap:5px; padding:.7rem .4rem; border-radius:13px; border:none; cursor:pointer; transition:all .18s; touch-action:manipulation; font-family:'Nunito',sans-serif; font-weight:800; font-size:.72rem; }
+.act-btn:active { transform:scale(.95); }
+.ab-again { background:var(--card); border:1.5px solid var(--border); color:var(--text); }
+.ab-again:hover { border-color:var(--accent3); color:var(--accent3); }
+.ab-cat   { background:var(--card); border:1.5px solid var(--border); color:var(--text); }
+.ab-cat:hover { border-color:var(--blue); color:var(--blue); }
+
+/* ─── SHARE CARD (off-screen) ─── */
+#shareCard {
+  position:fixed; top:-9999px; left:-9999px; width:380px;
+  background:linear-gradient(135deg,#0d0d1a 0%,#1a1030 100%);
+  padding:22px; font-family:'Righteous',sans-serif; color:#fff; z-index:-1;
+  border:1px solid #2e3158;
+}
+.sc-hdr { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+.sc-logo { width:40px; height:40px; background:linear-gradient(135deg,#ff6b6b,#ffd93d); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; }
+.sc-app  { font-size:1.4rem; background:linear-gradient(135deg,#ff6b6b,#ffd93d); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.sc-tg   { font-family:'Nunito',sans-serif; font-size:.58rem; color:#7b7fa8; }
+.sc-ch   { background:rgba(255,217,61,.06); border:1px solid rgba(255,217,61,.2); border-radius:13px; padding:11px; margin-bottom:11px; display:flex; align-items:center; gap:9px; }
+.sc-ch img { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,217,61,.35); background:#1e2138; }
+.sc-cl   { font-family:'Nunito',sans-serif; font-size:.54rem; color:#ffd93d; font-weight:800; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+.sc-cn   { font-size:1.05rem; }
+.sc-chd  { font-family:'Nunito',sans-serif; font-size:.58rem; color:#7b7fa8; }
+.sc-sa   { background:linear-gradient(135deg,#1e1535,#1e2040); border:1px solid #c77dff; border-radius:13px; padding:14px; margin-bottom:11px; text-align:center; }
+.sc-pl   { font-family:'Nunito',sans-serif; font-size:.55rem; color:#7b7fa8; font-weight:800; letter-spacing:.12em; text-transform:uppercase; margin-bottom:3px; }
+.sc-bp   { font-size:2.6rem; color:#ffd93d; line-height:1; }
+.sc-rl   { font-family:'Nunito',sans-serif; font-size:.6rem; color:#c77dff; margin-top:3px; }
+.sc-mini { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:10px; }
+.sc-mc   { background:rgba(255,255,255,.04); border-radius:7px; padding:7px 3px; text-align:center; }
+.sc-mv   { font-size:1.05rem; }
+.sc-ml   { font-family:'Nunito',sans-serif; font-size:.46rem; color:#7b7fa8; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+.sc-t3   { margin-bottom:11px; }
+.sc-t3h  { font-size:.7rem; color:#ffd93d; margin-bottom:5px; }
+.sc-t3r  { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,.04); border-radius:7px; padding:5px 8px; margin-bottom:3px; }
+.sc-t3r .md { font-size:.78rem; }
+.sc-t3r .tn { font-family:'Nunito',sans-serif; font-size:.7rem; font-weight:700; flex:1; }
+.sc-t3r .te { font-family:'Nunito',sans-serif; font-size:.62rem; color:#ff6b6b; font-weight:800; }
+.sc-ft   { display:flex; align-items:center; justify-content:space-between; border-top:1px solid #2e3158; padding-top:9px; font-family:'Nunito',sans-serif; font-size:.56rem; color:#7b7fa8; }
+.sc-cta  { color:#ff6b6b; font-weight:800; }
+
+/* ─── CONFIRM EXIT MODAL ─── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:300;
+  display:none; place-items:center; backdrop-filter:blur(5px);
+  padding:1rem;
+}
+.modal-overlay.open { display:grid; }
+.modal-box {
+  background:var(--card); border:1px solid var(--border); border-radius:20px;
+  padding:1.75rem 1.25rem; text-align:center; width:100%; max-width:320px;
+  animation:su .3s ease;
+}
+.modal-icon { font-size:2.5rem; margin-bottom:.75rem; }
+.modal-h    { font-family:'Righteous',sans-serif; font-size:1.3rem; margin-bottom:.4rem; }
+.modal-p    { color:var(--muted); font-size:.78rem; line-height:1.5; margin-bottom:1.25rem; }
+.modal-btns { display:flex; gap:8px; }
+.modal-btn  { flex:1; padding:.75rem; border:none; border-radius:11px; font-family:'Nunito',sans-serif; font-weight:800; font-size:.82rem; cursor:pointer; transition:all .18s; touch-action:manipulation; }
+.modal-cancel  { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+.modal-cancel:hover  { border-color:var(--muted); color:var(--text); }
+.modal-confirm { background:linear-gradient(135deg,#ff6b6b,#ff8e53); color:#fff; box-shadow:0 4px 14px rgba(255,107,107,.4); }
+.modal-confirm:hover { transform:translateY(-1px); }
+
+/* Confetti */
+.cpiece { position:fixed; width:7px; height:11px; border-radius:2px; z-index:9999; animation:cfall 2.5s ease forwards; pointer-events:none; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:calc(1.4rem + var(--sb)); left:50%; transform:translateX(-50%);
+  background:#1a1a2e; border:1px solid var(--border); border-radius:50px;
+  padding:.6rem 1.3rem; font-size:.74rem; font-weight:700; color:var(--text);
+  z-index:9999; opacity:0; pointer-events:none; transition:opacity .3s;
+  white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.toast.show { opacity:1; }
+
+/* Footer */
+footer { text-align:center; padding:1.5rem 0 .75rem; color:var(--muted); font-size:.63rem; line-height:1.8; border-top:1px solid var(--border); margin-top:1.25rem; }
+footer a { color:var(--blue); text-decoration:none; }
+footer a:hover { text-decoration:underline; }
+footer strong { color:var(--text); }
+
+@media(max-width:360px) {
+  .arena { grid-template-columns:1fr 34px 1fr; gap:.35rem; }
+  .dp-card { padding:.85rem .45rem .65rem; }
+  .dp-img  { width:70px; height:70px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-box">⭐</div>
+      <div class="logo-nm">FavCeleb</div>
+    </div>
+    <div class="score-pill" id="scorePill" style="display:none;">
+      <span class="fl">🔥</span>
+      <span class="pv" id="livePts">0</span>
+      <span style="color:var(--muted);font-size:.65rem;">pts</span>
+      <span class="sx-b" id="sxBadge" style="display:none;">×1</span>
+    </div>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div class="screen active" id="loadScreen">
+    <div class="spinner"></div>
+    <div class="load-h">Loading Stars ⭐</div>
+    <div class="load-p">Fetching celebrity photos…</div>
+    <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+    <div class="load-cl" id="loadCl"></div>
+  </div>
+
+  <!-- ══ LOBBY ══ -->
+  <div class="screen" id="lobbyScreen">
+    <div class="hero">
+      <span class="hero-em">🌟</span>
+      <div class="hero-h">Who's Your <span>FavCeleb?</span></div>
+      <div class="hero-p">Battle celebrity DPs, rack up points, pick your ultimate fav &amp; challenge friends!</div>
+    </div>
+    <div class="how-grid">
+      <div class="how-c"><div class="ic">👆</div><div class="ht">Pick</div><div class="hd">Tap the celeb you prefer each round</div></div>
+      <div class="how-c"><div class="ic">🔥</div><div class="ht">Streak</div><div class="hd">Fast picks earn bonus multipliers</div></div>
+      <div class="how-c"><div class="ic">👑</div><div class="ht">Crown</div><div class="hd">Pick your ultimate #1 at the end</div></div>
+    </div>
+    <div class="filter-bar">
+      <button class="ftag on" onclick="setFilter('all',this)">🌍 All</button>
+      <button class="ftag" onclick="setFilter('music',this)">🎵 Music</button>
+      <button class="ftag" onclick="setFilter('sports',this)">⚽ Sports</button>
+      <button class="ftag" onclick="setFilter('film',this)">🎬 Film</button>
+      <button class="ftag" onclick="setFilter('tech',this)">💻 Tech</button>
+    </div>
+    <div class="celeb-row" id="celebRow"></div>
+    <button class="big-btn" onclick="startGame()">⚡ START RANKING</button>
+    <div class="lobby-note" id="lobbyNote"></div>
+  </div>
+
+  <!-- ══ BATTLE ══ -->
+  <div class="screen" id="battleScreen">
+    <div class="battle-toprow">
+      <div class="round-tag" id="roundTag">ROUND 1</div>
+      <div class="prog-wrap">
+        <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        <div class="left-tag" id="leftTag">— left</div>
+      </div>
+      <!-- EXIT BUTTON -->
+      <button class="exit-btn" onclick="askExit()">🏁 Declare</button>
+    </div>
+
+    <div class="livebar">
+      <div class="lv"><div class="lv-val cp" id="lbPts">0</div><div class="lv-lbl">Points</div></div>
+      <div class="lv"><div class="lv-val cs" id="lbStreak">×1</div><div class="lv-lbl">Streak</div></div>
+      <div class="lv"><div class="lv-val csp" id="lbSpeed">—</div><div class="lv-lbl">Speed</div></div>
+    </div>
+
+    <div class="arena">
+      <div class="dp-card" id="card1" onclick="vote(0)">
+        <div class="ig-wrap"><div class="ig-in"><img class="dp-img" id="img1" src="" alt=""></div></div>
+        <div class="dp-nm" id="nm1">—</div>
+        <div class="dp-hd" id="hd1">@—</div>
+        <div class="dp-elo" id="el1">ELO 1000</div>
+        <div class="pick-over">👆 PICK</div>
+      </div>
+      <div class="vs-mid">VS</div>
+      <div class="dp-card" id="card2" onclick="vote(1)">
+        <div class="ig-wrap"><div class="ig-in"><img class="dp-img" id="img2" src="" alt=""></div></div>
+        <div class="dp-nm" id="nm2">—</div>
+        <div class="dp-hd" id="hd2">@—</div>
+        <div class="dp-elo" id="el2">ELO 1000</div>
+        <div class="pick-over">👆 PICK</div>
+      </div>
+    </div>
+    <div class="tap-hint">tap the one you prefer</div>
+
+    <!-- Share with friends during battle -->
+    <div class="battle-share-row">
+      <button class="battle-share-btn" onclick="shareMidGame()">
+        📤 Share with Friends
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ END SELECTION ══ -->
+  <div class="screen" id="endSelectScreen">
+    <div class="es-h">👑 Pick Your #1 Fav</div>
+    <div class="es-sub">You've seen them all! Tap your ultimate favourite celebrity to crown them.</div>
+    <div class="es-grid" id="esGrid"></div>
+    <button class="es-confirm" id="esConfirm" onclick="confirmFav()" disabled>
+      ✨ Crown My Fav &amp; See Results
+    </button>
+  </div>
+
+  <!-- ══ GAME OVER ══ -->
+  <div class="screen" id="gameOverScreen">
+    <div class="go-tag">🎮 Results Are In!</div>
+    <div class="go-h">ROUND<br>COMPLETE!</div>
+
+    <div class="chosen-hero">
+      <div class="ch-crown">👑</div>
+      <img class="ch-img" id="chImg" src="" alt="">
+      <div>
+        <div class="ch-lbl">Your #1 FavCeleb</div>
+        <div class="ch-name" id="chName">—</div>
+        <div class="ch-hd" id="chHd">@—</div>
+        <div class="ch-elo" id="chElo">ELO 1000</div>
+      </div>
+    </div>
+
+    <div class="score-box">
+      <div class="pts-lbl">Your Score</div>
+      <div class="big-pts" id="finalPts">0</div>
+      <div class="rank-badge rC" id="rankBadge">Rank C</div>
+      <div class="stat-grid">
+        <div class="sg"><div class="sg-v" id="sgB">0</div><div class="sg-l">Battles</div></div>
+        <div class="sg"><div class="sg-v" id="sgS">0</div><div class="sg-l">Best Streak</div></div>
+        <div class="sg"><div class="sg-v" id="sgSp">0s</div><div class="sg-l">Avg Speed</div></div>
+      </div>
+    </div>
+
+    <!-- PROMINENT SHARE SECTION -->
+    <div class="share-section">
+      <div class="share-section-title">📤 Share With Friends</div>
+      <div class="share-big-grid">
+        <button class="s-btn" onclick="shareVia('whatsapp')"><span class="si">💬</span><span class="sl">WhatsApp</span></button>
+        <button class="s-btn" onclick="shareVia('twitter')"><span class="si">𝕏</span><span class="sl">Twitter/X</span></button>
+        <button class="s-btn" onclick="shareVia('screenshot')"><span class="si">📸</span><span class="sl">Screenshot</span></button>
+        <button class="s-btn" onclick="shareVia('copy')"><span class="si">📋</span><span class="sl">Copy Text</span></button>
+      </div>
+      <button class="share-challenge-btn" onclick="challengeFriend()">
+        🤜 Challenge a Friend to Beat My Score!
+      </button>
+    </div>
+
+    <div class="lb-h">🏆 Celebrity Rankings</div>
+    <div class="lb-list" id="lbList"></div>
+
+    <div class="act-row">
+      <button class="act-btn ab-again" onclick="playAgain()">🔄 Play Again</button>
+      <button class="act-btn ab-cat"   onclick="changeCat()">🎭 New Category</button>
+    </div>
+  </div>
+
+  <footer>
+    <div><strong>FavCeleb</strong> — Celebrity ELO Ranking Game</div>
+    <div>Developed by <strong>Paul Knight</strong></div>
+    <div><a href="mailto:pk.knightpaul@gmail.com">pk.knightpaul@gmail.com</a></div>
+    <div style="margin-top:.2rem;font-size:.54rem;">Images sourced via Wikipedia API</div>
+  </footer>
+</div>
+
+<!-- EXIT CONFIRM MODAL -->
+<div class="modal-overlay" id="exitModal">
+  <div class="modal-box">
+    <div class="modal-icon">🏁</div>
+    <div class="modal-h">Declare Score?</div>
+    <div class="modal-p">You've completed <span id="modalBattleCount">0</span> battles so far.<br>Stop now and pick your #1 FavCeleb to see your final score!</div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-cancel" onclick="closeExitModal()">Keep Playing</button>
+      <button class="modal-btn modal-confirm" onclick="exitGame()">Declare Score 🏆</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE CARD (off-screen for screenshot) -->
+<div id="shareCard">
+  <div class="sc-hdr">
+    <div class="sc-logo">⭐</div>
+    <div><div class="sc-app">FavCeleb</div><div class="sc-tg">Who's Your Fav? — by Paul Knight</div></div>
+  </div>
+  <div class="sc-ch">
+    <img id="sc-ch-img" src="" alt="">
+    <div>
+      <div class="sc-cl">👑 My #1 FavCeleb</div>
+      <div class="sc-cn" id="sc-ch-nm">—</div>
+      <div class="sc-chd" id="sc-ch-hd">@—</div>
+    </div>
+  </div>
+  <div class="sc-sa">
+    <div class="sc-pl">My Score</div>
+    <div class="sc-bp" id="sc-pts">0</div>
+    <div class="sc-rl" id="sc-rank">Rank: C</div>
+    <div class="sc-mini">
+      <div class="sc-mc"><div class="sc-mv" id="sc-b">0</div><div class="sc-ml">Battles</div></div>
+      <div class="sc-mc"><div class="sc-mv" id="sc-s">0</div><div class="sc-ml">Streak</div></div>
+      <div class="sc-mc"><div class="sc-mv" id="sc-sp">0s</div><div class="sc-ml">Speed</div></div>
+    </div>
+  </div>
+  <div class="sc-t3">
+    <div class="sc-t3h">⭐ My Top 3 Celebs</div>
+    <div id="sc-top3"></div>
+  </div>
+  <div class="sc-ft">
+    <div>FavCeleb · Paul Knight<br>pk.knightpaul@gmail.com</div>
+    <div class="sc-cta">Beat my score! 🔥</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CELEBRITY DATA ───────────────────────────────────────────────────────────
+const CELEBS = [
+  {name:"Taylor Swift",     handle:"@taylorswift",    cat:"music",  wiki:"Taylor_Swift"},
+  {name:"Beyoncé",          handle:"@beyonce",         cat:"music",  wiki:"Beyoncé"},
+  {name:"Drake",            handle:"@champagnepapi",   cat:"music",  wiki:"Drake_(musician)"},
+  {name:"Rihanna",          handle:"@badgalriri",      cat:"music",  wiki:"Rihanna"},
+  {name:"Ed Sheeran",       handle:"@teddysphotos",    cat:"music",  wiki:"Ed_Sheeran"},
+  {name:"Ariana Grande",    handle:"@arianagrande",    cat:"music",  wiki:"Ariana_Grande"},
+  {name:"Eminem",           handle:"@eminem",          cat:"music",  wiki:"Eminem"},
+  {name:"Lady Gaga",        handle:"@ladygaga",        cat:"music",  wiki:"Lady_Gaga"},
+  {name:"Cristiano Ronaldo",handle:"@cristiano",       cat:"sports", wiki:"Cristiano_Ronaldo"},
+  {name:"LeBron James",     handle:"@kingjames",       cat:"sports", wiki:"LeBron_James"},
+  {name:"Lionel Messi",     handle:"@leomessi",        cat:"sports", wiki:"Lionel_Messi"},
+  {name:"Virat Kohli",      handle:"@virat.kohli",     cat:"sports", wiki:"Virat_Kohli"},
+  {name:"Neymar Jr",        handle:"@neymarjr",        cat:"sports", wiki:"Neymar"},
+  {name:"Serena Williams",  handle:"@serenawilliams",  cat:"sports", wiki:"Serena_Williams"},
+  {name:"Roger Federer",    handle:"@rogerfederer",    cat:"sports", wiki:"Roger_Federer"},
+  {name:"MS Dhoni",         handle:"@msdhoni",         cat:"sports", wiki:"MS_Dhoni"},
+  {name:"Dwayne Johnson",   handle:"@therock",         cat:"film",   wiki:"Dwayne_Johnson"},
+  {name:"Kylie Jenner",     handle:"@kyliejenner",     cat:"film",   wiki:"Kylie_Jenner"},
+  {name:"Selena Gomez",     handle:"@selenagomez",     cat:"film",   wiki:"Selena_Gomez"},
+  {name:"Zendaya",          handle:"@zendaya",         cat:"film",   wiki:"Zendaya"},
+  {name:"Tom Holland",      handle:"@tomholland2013",  cat:"film",   wiki:"Tom_Holland"},
+  {name:"Margot Robbie",    handle:"@margotrobbie",    cat:"film",   wiki:"Margot_Robbie"},
+  {name:"Ryan Reynolds",    handle:"@vancityreynolds", cat:"film",   wiki:"Ryan_Reynolds"},
+  {name:"Jennifer Lopez",   handle:"@jlo",             cat:"film",   wiki:"Jennifer_Lopez"},
+  {name:"Elon Musk",        handle:"@elonmusk",        cat:"tech",   wiki:"Elon_Musk"},
+  {name:"Mark Zuckerberg",  handle:"@zuck",            cat:"tech",   wiki:"Mark_Zuckerberg"},
+  {name:"Jeff Bezos",       handle:"@jeffbezos",       cat:"tech",   wiki:"Jeff_Bezos"},
+  {name:"Bill Gates",       handle:"@thisisbillgates", cat:"tech",   wiki:"Bill_Gates"},
+  {name:"Sundar Pichai",    handle:"@sundarpichai",    cat:"tech",   wiki:"Sundar_Pichai"},
+  {name:"Sam Altman",       handle:"@sama",            cat:"tech",   wiki:"Sam_Altman"},
+  {name:"Tim Cook",         handle:"@tim_cook",        cat:"tech",   wiki:"Tim_Cook"},
+  {name:"Satya Nadella",    handle:"@satyanadella",    cat:"tech",   wiki:"Satya_Nadella"},
+];
+
+// ─── IMAGE LOADING — CORS-SAFE ────────────────────────────────────────────────
+// Strategy: try direct Wikipedia URL first (works on hosted/HTTPS),
+// then fall back to allorigins CORS proxy to convert to base64,
+// then fall back to ui-avatars colored placeholder.
+
+async function fetchImgAsBase64(url) {
+  try {
+    // Use allorigins proxy which returns base64
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error('proxy failed');
+    const blob = await res.blob();
+    return await blobToBase64(blob);
+  } catch {
+    return null;
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result);
+    reader.onerror = () => reject();
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function getWikiImgUrl(title) {
+  try {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (d.thumbnail) return d.thumbnail.source.replace(/\/\d+px-/, '/200px-');
+    if (d.originalimage) return d.originalimage.source;
+    return null;
+  } catch { return null; }
+}
+
+function avatarUrl(name) {
+  const cols = ['ff6b6b','ffd93d','6bcb77','4d96ff','c77dff','ff8e53'];
+  const c = cols[name.length % cols.length];
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=200&background=${c}&color=fff&bold=true&font-size=0.38&rounded=true`;
+}
+
+// Load image: try wiki direct first, then CORS proxy, then avatar
+async function loadCelebImage(celeb) {
+  const wikiUrl = await getWikiImgUrl(celeb.wiki);
+  if (wikiUrl) {
+    // Try direct load first (works on HTTPS)
+    const direct = await tryDirectLoad(wikiUrl);
+    if (direct) return direct;
+    // Fallback: proxy through allorigins as base64
+    const b64 = await fetchImgAsBase64(wikiUrl);
+    if (b64) return b64;
+  }
+  // Final fallback: colored avatar (always works)
+  return avatarUrl(celeb.name);
+}
+
+function tryDirectLoad(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => resolve(url);
+    img.onerror = () => resolve(null);
+    img.src = url;
+    setTimeout(() => resolve(null), 4000); // timeout
+  });
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let allLoaded = [], profiles = [], pairs = [], pairIdx = 0;
+let isAnim = false, curFilter = 'all';
+let userPts = 0, streak = 0, bestStreak = 0, totalB = 0, totalT = 0, pickStart = 0;
+let chosenCeleb = null, sortedProfiles = [];
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  showScreen('loadScreen');
+  const fill = document.getElementById('loadFill');
+  const cl   = document.getElementById('loadCl');
+  let done = 0;
+
+  allLoaded = await Promise.all(CELEBS.map(async c => {
+    cl.textContent = `Loading ${c.name}…`;
+    const src = await loadCelebImage(c);
+    done++;
+    fill.style.width = (done / CELEBS.length * 100) + '%';
+    return { ...c, src, elo: 1000, wins: 0, losses: 0 };
+  }));
+
+  buildLobby('all');
+  showScreen('lobbyScreen');
+}
+
+// ─── LOBBY ────────────────────────────────────────────────────────────────────
+function buildLobby(filter) {
+  curFilter = filter;
+  const pool = filter === 'all' ? allLoaded : allLoaded.filter(c => c.cat === filter);
+  profiles = pool.map(c => ({ ...c, elo: 1000, wins: 0, losses: 0 }));
+
+  document.getElementById('celebRow').innerHTML = profiles.map(p => `
+    <div class="chip">
+      <img src="${p.src}" alt="${p.name}">
+      <div class="chip-nm">${p.name.split(' ')[0]}</div>
+    </div>`).join('');
+
+  const n = profiles.length, b = n * (n - 1) / 2;
+  document.getElementById('lobbyNote').textContent = `${n} celebs · ${b} battles`;
+}
+
+function setFilter(f, btn) {
+  document.querySelectorAll('.ftag').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  buildLobby(f);
+}
+
+// ─── GAME START ───────────────────────────────────────────────────────────────
+function startGame() {
+  pairs = [];
+  for (let i = 0; i < profiles.length; i++)
+    for (let j = i + 1; j < profiles.length; j++)
+      pairs.push([i, j]);
+  pairs.sort(() => Math.random() - .5);
+
+  pairIdx = 0; userPts = 0; streak = 0; bestStreak = 0; totalB = 0; totalT = 0; chosenCeleb = null;
+  document.getElementById('scorePill').style.display = 'flex';
+  document.getElementById('livePts').textContent = '0';
+  document.getElementById('sxBadge').style.display = 'none';
+  showScreen('battleScreen');
+  renderBattle();
+}
+
+function renderBattle() {
+  const [a, b] = pairs[pairIdx];
+  document.getElementById('roundTag').textContent  = `ROUND ${pairIdx + 1}`;
+  document.getElementById('leftTag').textContent   = `${pairs.length - pairIdx} left`;
+  document.getElementById('progFill').style.width  = (pairIdx / pairs.length * 100) + '%';
+  document.getElementById('lbPts').textContent     = userPts;
+  document.getElementById('lbStreak').textContent  = `×${Math.max(1, streak)}`;
+  document.getElementById('lbSpeed').textContent   = totalB > 0 ? (totalT / totalB / 1000).toFixed(1) + 's' : '—';
+  setCard(1, profiles[a]);
+  setCard(2, profiles[b]);
+  document.getElementById('card1').className = 'dp-card';
+  document.getElementById('card2').className = 'dp-card';
+  pickStart = Date.now();
+}
+
+function setCard(n, p) {
+  const img = document.getElementById(`img${n}`);
+  img.src = p.src; // already loaded base64 or working URL
+  document.getElementById(`nm${n}`).textContent = p.name;
+  document.getElementById(`hd${n}`).textContent = p.handle;
+  document.getElementById(`el${n}`).textContent = `ELO ${p.elo}`;
+}
+
+// ─── VOTING ───────────────────────────────────────────────────────────────────
+function vote(choice) {
+  if (isAnim) return;
+  isAnim = true;
+
+  const el = Date.now() - pickStart;
+  totalT += el; totalB++;
+
+  const [a, b] = pairs[pairIdx];
+  const wI = choice === 0 ? a : b;
+  const lI = choice === 0 ? b : a;
+
+  streak++;
+  if (streak > bestStreak) bestStreak = streak;
+
+  let pts = 10;
+  if (el < 2000) pts += 10;
+  if (el < 1000) pts += 10;
+  pts *= Math.min(streak, 5);
+  userPts += pts;
+
+  document.getElementById('livePts').textContent = userPts;
+  const sx = document.getElementById('sxBadge');
+  sx.style.display = streak >= 2 ? 'block' : 'none';
+  sx.textContent = `×${streak}`;
+
+  showPop(`+${pts}`);
+  document.getElementById(choice === 0 ? 'card1' : 'card2').classList.add('winner');
+  document.getElementById(choice === 0 ? 'card2' : 'card1').classList.add('loser');
+  updateElo(wI, lI);
+
+  setTimeout(() => {
+    pairIdx++;
+    isAnim = false;
+    if (pairIdx >= pairs.length) showEndSelect();
+    else renderBattle();
+  }, 450);
+}
+
+function showPop(txt) {
+  const el = document.createElement('div');
+  el.className = 'pts-pop'; el.textContent = txt;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// ─── ELO ─────────────────────────────────────────────────────────────────────
+function exp(rA, rB) { return 1 / (1 + Math.pow(10, (rB - rA) / 400)); }
+function updateElo(wI, lI, K = 32) {
+  const w = profiles[wI], l = profiles[lI];
+  const ew = exp(w.elo, l.elo), el = exp(l.elo, w.elo);
+  w.elo = Math.round(w.elo + K * (1 - ew));
+  l.elo = Math.round(l.elo + K * (0 - el));
+  w.wins++; l.losses++;
+}
+
+// ─── EXIT / DECLARE ───────────────────────────────────────────────────────────
+function askExit() {
+  document.getElementById('modalBattleCount').textContent = totalB;
+  document.getElementById('exitModal').classList.add('open');
+}
+function closeExitModal() {
+  document.getElementById('exitModal').classList.remove('open');
+}
+function exitGame() {
+  closeExitModal();
+  showEndSelect();
+}
+
+// ─── END SELECTION ────────────────────────────────────────────────────────────
+function showEndSelect() {
+  document.getElementById('scorePill').style.display = 'none';
+  sortedProfiles = [...profiles].sort((a, b) => b.elo - a.elo);
+
+  document.getElementById('esGrid').innerHTML = sortedProfiles.map((p, i) => `
+    <div class="es-card" id="esc-${i}" onclick="selectFav(${i})">
+      <img src="${p.src}" alt="${p.name}">
+      <div class="es-nm">${p.name}</div>
+      <div class="es-elo">ELO ${p.elo}</div>
+    </div>`).join('');
+
+  showScreen('endSelectScreen');
+}
+
+function selectFav(i) {
+  document.querySelectorAll('.es-card').forEach(c => c.classList.remove('chosen'));
+  document.getElementById(`esc-${i}`).classList.add('chosen');
+  chosenCeleb = sortedProfiles[i];
+  document.getElementById('esConfirm').disabled = false;
+  confetti();
+}
+
+function confirmFav() {
+  if (chosenCeleb) gameOver();
+}
+
+// ─── CONFETTI ─────────────────────────────────────────────────────────────────
+function confetti() {
+  const cols = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff8e53'];
+  for (let i = 0; i < 30; i++) {
+    const el = document.createElement('div');
+    el.className = 'cpiece';
+    el.style.cssText = `left:${Math.random()*100}vw;top:-20px;background:${cols[Math.floor(Math.random()*cols.length)]};transform:rotate(${Math.random()*360}deg);animation-duration:${1.5+Math.random()*1.5}s;animation-delay:${Math.random()*.4}s;`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  }
+}
+
+// ─── GAME OVER ────────────────────────────────────────────────────────────────
+function gameOver() {
+  const sorted = sortedProfiles;
+  const avgSpd = totalB > 0 ? (totalT / totalB / 1000).toFixed(1) : '0';
+
+  let rank = 'C', rCl = 'rC';
+  if (userPts >= 2000) { rank = 'S'; rCl = 'rS'; }
+  else if (userPts >= 1000) { rank = 'A'; rCl = 'rA'; }
+  else if (userPts >= 500)  { rank = 'B'; rCl = 'rB'; }
+
+  const ch = chosenCeleb;
+  document.getElementById('chImg').src      = ch.src;
+  document.getElementById('chName').textContent = ch.name;
+  document.getElementById('chHd').textContent   = ch.handle;
+  document.getElementById('chElo').textContent  = `ELO ${ch.elo}`;
+
+  document.getElementById('finalPts').textContent = userPts;
+  const rb = document.getElementById('rankBadge');
+  rb.textContent = `Rank ${rank}`; rb.className = `rank-badge ${rCl}`;
+  document.getElementById('sgB').textContent  = totalB;
+  document.getElementById('sgS').textContent  = bestStreak;
+  document.getElementById('sgSp').textContent = avgSpd + 's';
+
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('lbList').innerHTML = sorted.slice(0, 6).map((p, i) => {
+    const tot = p.wins + p.losses, wr = tot ? Math.round(p.wins / tot * 100) : 0;
+    return `<div class="lb-row" style="animation-delay:${i*.065}s">
+      <div class="lb-pos">${medals[i] || (i+1)}</div>
+      <img class="lb-img" src="${p.src}" alt="${p.name}">
+      <div><div class="lb-nm">${p.name}</div><div class="lb-cat">${p.cat} · ${wr}%W</div></div>
+      <div style="text-align:right"><div class="lb-elo">${p.elo}</div><div class="lb-wl">${p.wins}W ${p.losses}L</div></div>
+    </div>`;
+  }).join('');
+
+  // Populate share card
+  document.getElementById('sc-ch-img').src = ch.src;
+  document.getElementById('sc-ch-nm').textContent = ch.name;
+  document.getElementById('sc-ch-hd').textContent = ch.handle;
+  document.getElementById('sc-pts').textContent   = userPts;
+  document.getElementById('sc-rank').textContent  = `Rank: ${rank}`;
+  document.getElementById('sc-b').textContent  = totalB;
+  document.getElementById('sc-s').textContent  = bestStreak;
+  document.getElementById('sc-sp').textContent = avgSpd + 's';
+  document.getElementById('sc-top3').innerHTML = sorted.slice(0,3).map((p,i) => `
+    <div class="sc-t3r"><span class="md">${medals[i]}</span><span class="tn">${p.name}</span><span class="te">ELO ${p.elo}</span></div>`).join('');
+
+  confetti();
+  showScreen('gameOverScreen');
+}
+
+// ─── SHARE ───────────────────────────────────────────────────────────────────
+function getShareTxt() {
+  const ch = chosenCeleb ? chosenCeleb.name : '—';
+  return `🌟 I just played FavCeleb!\n\nMy #1 Fav: ${ch} 👑\nScore: ${userPts} pts  Best Streak: ${bestStreak}🔥\n\nCan YOU beat me?\nPlay FavCeleb now 👇\nhttps://favcelebs.app\n\n— Made by Paul Knight · pk.knightpaul@gmail.com`;
+}
+
+function getMidGameTxt() {
+  return `🌟 I'm playing FavCeleb right now!\n\nCurrent score: ${userPts} pts  Streak: ${streak}🔥\nBattles done: ${totalB}\n\nJoin me & see whose fav celeb wins!\nhttps://favcelebs.app\n\n— FavCeleb by Paul Knight`;
+}
+
+async function shareVia(type) {
+  const txt = getShareTxt();
+  if (type === 'whatsapp') {
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+  } else if (type === 'twitter') {
+    const t = `🌟 My #1 FavCeleb is ${chosenCeleb?.name || '—'} 👑\nScore: ${userPts} pts! Can you beat me?\nhttps://favcelebs.app`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}`, '_blank');
+  } else if (type === 'screenshot') {
+    await takeScreenshot();
+  } else if (type === 'copy') {
+    navigator.clipboard.writeText(txt)
+      .then(() => toast('📋 Copied! Paste anywhere to share.'))
+      .catch(() => toast('Copy failed — try another option.'));
+  }
+}
+
+function shareMidGame() {
+  const txt = getMidGameTxt();
+  if (navigator.share) {
+    navigator.share({ title: 'Join me on FavCeleb! 🌟', text: txt })
+      .catch(() => copyToClipboard(txt, '📋 Invite copied! Send it to friends.'));
+  } else {
+    copyToClipboard(txt, '📋 Invite copied! Send it to friends.');
+  }
+}
+
+function challengeFriend() {
+  const txt = getShareTxt();
+  if (navigator.share) {
+    navigator.share({ title: '🌟 FavCeleb Challenge!', text: txt })
+      .catch(() => copyToClipboard(txt, '📋 Challenge copied! Paste to send.'));
+  } else {
+    copyToClipboard(txt, '📋 Challenge copied! Paste to send.');
+  }
+}
+
+function copyToClipboard(txt, msg) {
+  navigator.clipboard.writeText(txt)
+    .then(() => toast(msg))
+    .catch(() => toast('Could not copy. Try another share option.'));
+}
+
+async function takeScreenshot() {
+  toast('📸 Generating your score card…');
+  try {
+    const card = document.getElementById('shareCard');
+    Object.assign(card.style, { position:'fixed', top:'0', left:'0', zIndex:'9998' });
+    await new Promise(r => setTimeout(r, 300));
+
+    const canvas = await html2canvas(card, {
+      backgroundColor: '#0d0d1a', scale: 2.5,
+      useCORS: true, allowTaint: true, logging: false
+    });
+
+    Object.assign(card.style, { position:'fixed', top:'-9999px', left:'-9999px', zIndex:'-1' });
+
+    canvas.toBlob(async blob => {
+      const file = new File([blob], 'favcelebs-score.png', { type:'image/png' });
+      if (navigator.share && navigator.canShare({ files:[file] })) {
+        await navigator.share({ title:'FavCeleb Score!', text: getShareTxt(), files:[file] });
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'favcelebs-score.png';
+        a.click();
+        toast('✅ Score card saved! Share it with friends.');
+      }
+    });
+  } catch {
+    toast('⚠️ Screenshot failed. Try Copy Text instead.');
+  }
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function playAgain() { buildLobby(curFilter); startGame(); }
+function changeCat()  { buildLobby('all'); document.querySelectorAll('.ftag').forEach((b,i)=>b.classList.toggle('on',i===0)); showScreen('lobbyScreen'); }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+let toastTmr;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
