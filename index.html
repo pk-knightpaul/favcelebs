@@ -1054,11 +1054,11 @@ function gameOver() {
 // ─── SHARE ───────────────────────────────────────────────────────────────────
 function getShareTxt() {
   const ch = chosenCeleb ? chosenCeleb.name : '—';
-  return `🌟 I just played FavCeleb!\n\nMy #1 Fav: ${ch} 👑\nScore: ${userPts} pts  Best Streak: ${bestStreak}🔥\n\nCan YOU beat me?\nPlay FavCeleb now 👇\nhttps://favcelebs.app\n\n— Made by Paul Knight · pk.knightpaul@gmail.com`;
+  return `🌟 I just played FavCeleb!\n\nMy #1 Fav: ${ch} 👑\nScore: ${userPts} pts  Best Streak: ${bestStreak}🔥\n\nCan YOU beat me?\nPlay FavCeleb now 👇\nhttps://github.com/pk-knightpaul/favcelebs.git\n\n— Made by Paul Knight · pk.knightpaul@gmail.com`;
 }
 
 function getMidGameTxt() {
-  return `🌟 I'm playing FavCeleb right now!\n\nCurrent score: ${userPts} pts  Streak: ${streak}🔥\nBattles done: ${totalB}\n\nJoin me & see whose fav celeb wins!\nhttps://favcelebs.app\n\n— FavCeleb by Paul Knight`;
+  return `🌟 I'm playing FavCeleb right now!\n\nCurrent score: ${userPts} pts  Streak: ${streak}🔥\nBattles done: ${totalB}\n\nJoin me & see whose fav celeb wins!\nhttps://github.com/pk-knightpaul/favcelebs.git\n\n— FavCeleb by Paul Knight`;
 }
 
 async function shareVia(type) {
@@ -1066,7 +1066,7 @@ async function shareVia(type) {
   if (type === 'whatsapp') {
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
   } else if (type === 'twitter') {
-    const t = `🌟 My #1 FavCeleb is ${chosenCeleb?.name || '—'} 👑\nScore: ${userPts} pts! Can you beat me?\nhttps://favcelebs.app`;
+    const t = `🌟 My #1 FavCeleb is ${chosenCeleb?.name || '—'} 👑\nScore: ${userPts} pts! Can you beat me?\nhttps://github.com/pk-knightpaul/favcelebs.git`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}`, '_blank');
   } else if (type === 'screenshot') {
     await takeScreenshot();
